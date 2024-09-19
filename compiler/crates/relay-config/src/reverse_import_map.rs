@@ -18,48 +18,36 @@ impl ReverseImportMap {
     }
 
     pub fn resolve_path(&self, path: String) -> Cow<'static, str> {
-        let path = path.to_string();
         let relative_path = strip_relative_part(&path);
-        let parts = relative_path.split("/").collect::<Vec<&str>>();
+        let parts: Vec<&str> = relative_path.split('/').collect();
 
         let matching_key = self
             .map
             .keys()
-            .filter(|key| {
-                println!("path and key: {:?} {:?}", relative_path, key);
-                relative_path.starts_with(key.as_str())
-            })
-            .fold(None, |acc: Option<&String>, key| match acc {
-                Some(acc) => {
-                    if acc.len() > key.len() {
-                        Some(acc)
-                    } else {
-                        Some(key)
-                    }
-                }
-                None => Some(key),
-            });
+            .filter(|key| relative_path.starts_with(key.as_str()))
+            .max_by_key(|key| key.len());
 
-        let resolved_path = match matching_key {
-            Some(matching_key) => {
+        let resolved_path: String = matching_key
+            .and_then(|matching_key| {
+                let matching_key_parts: Vec<&str> = matching_key.split('/').collect();
                 let rest_parts = parts
-                    .clone()
-                    .into_iter()
-                    .skip(matching_key.split("/").collect::<Vec<&str>>().len())
+                    .iter()
+                    .skip(matching_key_parts.len())
+                    .cloned()
                     .collect::<Vec<&str>>()
                     .join("/");
 
-                let resolved_path = self.map.get(matching_key).map(|f| match rest_parts.len() {
-                    0 => f.to_string(),
-                    _ => format!("{}/{}", f, rest_parts),
-                });
+                self.map.get(matching_key).map(|f| {
+                    if rest_parts.is_empty() {
+                        f.to_owned()
+                    } else {
+                        format!("{}/{}", f, rest_parts)
+                    }
+                })
+            })
+            .unwrap_or(path);
 
-                resolved_path.unwrap_or(path)
-            }
-            None => path,
-        };
-
-        return resolved_path.into();
+        resolved_path.into()
     }
 }
 
