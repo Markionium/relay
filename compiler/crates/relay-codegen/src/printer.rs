@@ -20,8 +20,10 @@ use graphql_ir::OperationDefinition;
 use indexmap::IndexMap;
 use intern::string_key::StringKey;
 use intern::Lookup;
+use path_slash::PathExt as _;
 use relay_config::DynamicModuleProvider;
 use relay_config::ProjectConfig;
+use relay_config::ReverseImportMap;
 use schema::SDLSchema;
 
 use crate::ast::Ast;
@@ -322,6 +324,7 @@ pub struct JSONPrinter<'b> {
     js_module_format: JsModuleFormat,
     top_level_statements: &'b mut TopLevelStatements,
     skip_printing_nulls: bool,
+    import_map: ReverseImportMap,
 }
 
 impl<'b> JSONPrinter<'b> {
@@ -341,6 +344,7 @@ impl<'b> JSONPrinter<'b> {
                 .feature_flags
                 .skip_printing_nulls
                 .is_fully_enabled(),
+            import_map: project_config.import_map.clone(),
         }
     }
 
@@ -536,7 +540,7 @@ impl<'b> JSONPrinter<'b> {
                 self.write_js_dependency(
                     f,
                     ModuleImportName::Default(format!("{}_graphql", variable_name).intern()),
-                    Cow::Owned(format!(
+                    self.import_map.resolve_path(format!(
                         "{}.graphql",
                         get_module_path(self.js_module_format, *key)
                     )),
@@ -546,7 +550,8 @@ impl<'b> JSONPrinter<'b> {
                 .write_js_dependency(
                     f,
                     import_name.clone(),
-                    get_module_path(self.js_module_format, *path),
+                    self.import_map
+                        .resolve_path(get_module_path(self.js_module_format, *path).to_string()),
                 ),
             Primitive::ResolverModuleReference(ResolverModuleReference {
                 field_type,

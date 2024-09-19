@@ -18,6 +18,7 @@ mod non_node_id_fields_config;
 mod project_config;
 mod project_name;
 mod resolvers_schema_module_config;
+mod reverse_import_map;
 mod typegen_config;
 
 pub use connection_interface::ConnectionInterface;
@@ -39,6 +40,7 @@ pub use project_config::SchemaConfig;
 pub use project_config::SchemaLocation;
 pub use project_name::ProjectName;
 pub use resolvers_schema_module_config::ResolversSchemaModuleConfig;
+pub use reverse_import_map::ReverseImportMap;
 pub use typegen_config::CustomType;
 pub use typegen_config::CustomTypeImport;
 pub use typegen_config::ResolverContextTypeInput;

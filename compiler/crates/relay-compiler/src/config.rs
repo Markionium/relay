@@ -42,6 +42,7 @@ pub use relay_config::ProjectConfig;
 use relay_config::ProjectName;
 pub use relay_config::RemotePersistConfig;
 use relay_config::ResolversSchemaModuleConfig;
+use relay_config::ReverseImportMap;
 use relay_config::SchemaConfig;
 pub use relay_config::SchemaLocation;
 use relay_config::TypegenConfig;
@@ -427,6 +428,7 @@ impl Config {
                     resolvers_schema_module: config_file_project.resolvers_schema_module,
                     codegen_command: config_file_project.codegen_command,
                     get_custom_path_for_artifact: None,
+                    import_map: ReverseImportMap::from(config_file_project.import_map),
                 };
                 Ok((project_name, project_config))
             })
@@ -632,7 +634,11 @@ impl fmt::Debug for Config {
         } = self;
 
         fn option_fn_to_string<T>(option: &Option<T>) -> &'static str {
-            if option.is_some() { "Some(Fn)" } else { "None" }
+            if option.is_some() {
+                "Some(Fn)"
+            } else {
+                "None"
+            }
         }
 
         f.debug_struct("Config")
@@ -1075,6 +1081,9 @@ pub struct ConfigFileProject {
 
     #[serde(default)]
     pub codegen_command: Option<String>,
+
+    #[serde(default)]
+    pub import_map: Option<FnvIndexMap<String, String>>,
 }
 
 pub type PersistId = String;

@@ -38,6 +38,7 @@ use crate::non_node_id_fields_config::NonNodeIdFieldsConfig;
 use crate::resolvers_schema_module_config::ResolversSchemaModuleConfig;
 use crate::JsModuleFormat;
 use crate::ProjectName;
+use crate::ReverseImportMap;
 use crate::TypegenConfig;
 use crate::TypegenLanguage;
 
@@ -254,7 +255,11 @@ pub struct ProjectConfig {
     pub diagnostic_report_config: DiagnosticReportConfig,
     pub resolvers_schema_module: Option<ResolversSchemaModuleConfig>,
     pub codegen_command: Option<String>,
+<<<<<<< HEAD
     pub get_custom_path_for_artifact: Option<CustomArtifactFilePath>,
+=======
+    pub import_map: ReverseImportMap,
+>>>>>>> e3078edba6 (Add support for package mapping)
 }
 
 impl Default for ProjectConfig {
@@ -284,7 +289,11 @@ impl Default for ProjectConfig {
             diagnostic_report_config: Default::default(),
             resolvers_schema_module: Default::default(),
             codegen_command: Default::default(),
+<<<<<<< HEAD
             get_custom_path_for_artifact: None,
+=======
+            import_map: ReverseImportMap::new(),
+>>>>>>> e3078edba6 (Add support for package mapping)
         }
     }
 }
@@ -316,7 +325,11 @@ impl Debug for ProjectConfig {
             diagnostic_report_config,
             resolvers_schema_module,
             codegen_command,
+<<<<<<< HEAD
             get_custom_path_for_artifact: _,
+=======
+            import_map,
+>>>>>>> e3078edba6 (Add support for package mapping)
         } = self;
         f.debug_struct("ProjectConfig")
             .field("name", name)
@@ -343,6 +356,7 @@ impl Debug for ProjectConfig {
             .field("diagnostic_report_config", diagnostic_report_config)
             .field("resolvers_schema_module", resolvers_schema_module)
             .field("codegen_command", codegen_command)
+            .field("import_map", import_map)
             .finish()
     }
 }
