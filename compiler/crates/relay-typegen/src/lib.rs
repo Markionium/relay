@@ -305,6 +305,10 @@ impl<'a> TypegenContext<'a> {
             typegen_options,
         }
     }
+
+    pub fn resolve_path_with_import_map(&self, path: &str) -> Option<String> {
+        self.project_config.import_map.resolve_path(path)
+    }
 }
 
 struct TypegenOptions {

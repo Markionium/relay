@@ -478,9 +478,10 @@ pub(crate) fn write_fragment_type_exports_section(
             JsModuleFormat::CommonJS => {
                 if typegen_context.has_unified_output {
                     let new_path = typegen_context
-                        .project_config
-                        .import_map
-                        .resolve_path(&format!("{}", refetchable_metadata.operation_name))
+                        .resolve_path_with_import_map(&format!(
+                            "{}",
+                            refetchable_metadata.operation_name
+                        ))
                         .map(|path| format!("{}.graphql", path))
                         .unwrap_or(format!("./{}.graphql", refetchable_metadata.operation_name));
 
@@ -563,9 +564,7 @@ fn write_fragment_imports(
             JsModuleFormat::CommonJS => {
                 if typegen_context.has_unified_output {
                     let new_path = typegen_context
-                        .project_config
-                        .import_map
-                        .resolve_path(&format!("{}", current_referenced_fragment))
+                        .resolve_path_with_import_map(&format!("{}", current_referenced_fragment))
                         .map(|path| format!("{}.graphql", path))
                         .unwrap_or(format!("./{}.graphql", current_referenced_fragment));
 
@@ -593,9 +592,7 @@ fn write_fragment_imports(
                         );
 
                     let new_path = typegen_context
-                        .project_config
-                        .import_map
-                        .resolve_path(&format!("{}", fragment_import_path))
+                        .resolve_path_with_import_map(&format!("{}", fragment_import_path))
                         .map(|path| format!("{}.graphql", path))
                         .unwrap_or(format!("./{}.graphql", fragment_import_path));
 
@@ -681,9 +678,7 @@ fn write_split_raw_response_type_imports(
             JsModuleFormat::CommonJS => {
                 if typegen_context.has_unified_output {
                     let new_path = typegen_context
-                        .project_config
-                        .import_map
-                        .resolve_path(&format!("{}", imported_raw_response_type))
+                        .resolve_path_with_import_map(&format!("{}", imported_raw_response_type))
                         .map(|path| format!("{}.graphql", path))
                         .unwrap_or(format!("./{}.graphql", imported_raw_response_type));
 
@@ -706,9 +701,7 @@ fn write_split_raw_response_type_imports(
                         );
 
                     let new_path = typegen_context
-                        .project_config
-                        .import_map
-                        .resolve_path(&format!("{}", artifact_import_path))
+                        .resolve_path_with_import_map(&format!("{}", artifact_import_path))
                         .map(|path| format!("{}.graphql", path))
                         .unwrap_or(format!("./{}.graphql", artifact_import_path));
 
