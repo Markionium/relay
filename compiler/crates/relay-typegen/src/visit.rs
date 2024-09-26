@@ -634,7 +634,9 @@ fn import_relay_resolver_function_type(
         }),
         Some(ResolverContextTypeInput::Package(context_import)) => Some(ResolverContextType {
             name: context_import.name,
-            import_path: context_import.package,
+            import_path: relay_config::ImportModulePath::MappedPackage(
+                context_import.package,
+            ),
         }),
         None => None,
     };

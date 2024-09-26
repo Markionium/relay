@@ -37,6 +37,7 @@ use crate::module_import_config::ModuleImportConfig;
 use crate::non_node_id_fields_config::NonNodeIdFieldsConfig;
 use crate::resolvers_schema_module_config::ResolversSchemaModuleConfig;
 use crate::ImportMap;
+use crate::ImportModulePath;
 use crate::JsModuleFormat;
 use crate::ProjectName;
 use crate::TypegenConfig;
@@ -428,14 +429,15 @@ impl ProjectConfig {
         &self,
         importing_artifact_path: &PathBuf,
         target_module_path: &PathBuf,
-    ) -> StringKey {
+    ) -> ImportModulePath {
         match self.js_module_format {
             JsModuleFormat::CommonJS => {
+                // In case of a remapped path from the import map we do not want to resolve a relative path
                 if let Some(path) = self
                     .import_map
                     .resolve_path(&format_normalized_path(target_module_path))
                 {
-                    return path.intern();
+                    return path;
                 }
 
                 let importing_artifact_directory = importing_artifact_path.parent().unwrap_or_else(||{
@@ -459,13 +461,17 @@ impl ProjectConfig {
                 let relative_path =
                     pathdiff::diff_paths(target_module_directory, importing_artifact_directory)
                         .unwrap();
-                format_normalized_path(&relative_path.join(target_module_file_name)).intern()
+                ImportModulePath::OriginalPath(
+                    format_normalized_path(&relative_path.join(target_module_file_name)).intern(),
+                )
             }
-            JsModuleFormat::Haste => target_module_path
-                .file_stem()
-                .unwrap()
-                .to_string_lossy()
-                .intern(),
+            JsModuleFormat::Haste => ImportModulePath::HasteModule(
+                target_module_path
+                    .file_stem()
+                    .unwrap()
+                    .to_string_lossy()
+                    .intern(),
+            ),
         }
     }
 }

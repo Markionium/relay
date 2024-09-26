@@ -17,6 +17,7 @@ use graphql_ir::FragmentDefinitionName;
 use indexmap::IndexMap;
 use intern::string_key::StringKey;
 use intern::Lookup;
+use relay_config::ImportModulePath;
 use schema::EnumID;
 use schema::SDLSchema;
 use schema::Schema;
@@ -135,14 +136,14 @@ pub(crate) struct EncounteredFragments(pub(crate) FnvHashSet<EncounteredFragment
 pub(crate) struct ImportedResolver {
     pub resolver_name: ImportedResolverName,
     pub resolver_type: AST,
-    pub import_path: StringKey,
+    pub import_path: ImportModulePath,
     pub context_import: Option<ResolverContextType>,
 }
 
 #[derive(Clone, Copy)]
 pub(crate) struct ResolverContextType {
     pub name: StringKey,
-    pub import_path: StringKey,
+    pub import_path: ImportModulePath,
 }
 
 #[derive(Clone, Copy)]

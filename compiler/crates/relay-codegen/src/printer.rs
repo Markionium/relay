@@ -5,7 +5,6 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-use std::borrow::Borrow;
 use std::borrow::Cow;
 use std::fmt::Result as FmtResult;
 use std::fmt::Write;
@@ -22,7 +21,7 @@ use intern::string_key::StringKey;
 use intern::Lookup;
 use path_slash::PathExt as _;
 use relay_config::DynamicModuleProvider;
-use relay_config::ImportMap;
+use relay_config::ImportModulePath;
 use relay_config::ProjectConfig;
 use schema::SDLSchema;
 
@@ -324,7 +323,6 @@ pub struct JSONPrinter<'b> {
     js_module_format: JsModuleFormat,
     top_level_statements: &'b mut TopLevelStatements,
     skip_printing_nulls: bool,
-    import_map: ImportMap,
 }
 
 impl<'b> JSONPrinter<'b> {
@@ -344,7 +342,6 @@ impl<'b> JSONPrinter<'b> {
                 .feature_flags
                 .skip_printing_nulls
                 .is_fully_enabled(),
-            import_map: project_config.import_map.clone(),
         }
     }
 
@@ -522,35 +519,35 @@ impl<'b> JSONPrinter<'b> {
                 write_static_storage_key(f, self.builder, *field_name, *key)
             }
             Primitive::GraphQLModuleDependency(dependency) => {
-                let (variable_name, key): (&ExecutableDefinitionName, &StringKey) = match dependency
-                {
-                    GraphQLModuleDependency::Name(name) => (
-                        name,
-                        match name {
-                            ExecutableDefinitionName::OperationDefinitionName(operation_name) => {
-                                &operation_name.0
-                            }
-                            ExecutableDefinitionName::FragmentDefinitionName(fragment_name) => {
-                                &fragment_name.0
-                            }
-                        },
-                    ),
-                    GraphQLModuleDependency::Path { name, path } => (name, path),
-                };
+                let (variable_name, key): (&ExecutableDefinitionName, ImportModulePath) =
+                    match dependency {
+                        GraphQLModuleDependency::Name(name) => (
+                            name,
+                            ImportModulePath::new(
+                                match name {
+                                    ExecutableDefinitionName::OperationDefinitionName(
+                                        operation_name,
+                                    ) => operation_name.0,
+                                    ExecutableDefinitionName::FragmentDefinitionName(
+                                        fragment_name,
+                                    ) => fragment_name.0,
+                                },
+                                self.js_module_format,
+                            ),
+                        ),
+                        GraphQLModuleDependency::Path { name, path } => (name, path.to_owned()),
+                    };
                 self.write_js_dependency(
                     f,
                     ModuleImportName::Default(format!("{}_graphql", variable_name).intern()),
-                    Cow::Owned(format!(
-                        "{}.graphql",
-                        get_module_path(self.js_module_format, &self.import_map, *key)
-                    )),
+                    get_module_path_with_extension(self.js_module_format, key, "graphql"),
                 )
             }
             Primitive::JSModuleDependency(JSModuleDependency { path, import_name }) => self
                 .write_js_dependency(
                     f,
                     import_name.clone(),
-                    get_module_path(self.js_module_format, &self.import_map, *path),
+                    get_module_path(self.js_module_format, *path),
                 ),
             Primitive::ResolverModuleReference(ResolverModuleReference {
                 field_type,
@@ -563,7 +560,10 @@ impl<'b> JSONPrinter<'b> {
                     self.top_level_statements.insert(
                         "JSResource".to_string(),
                         TopLevelStatement::ImportStatement(JSModuleDependency {
-                            path: "JSResource".intern(),
+                            path: ImportModulePath::new(
+                                "JSResource".intern(),
+                                self.js_module_format,
+                            ),
                             import_name: ModuleImportName::Default("JSResource".intern()),
                         }),
                     );
@@ -572,7 +572,10 @@ impl<'b> JSONPrinter<'b> {
                 DynamicModuleProvider::Custom { statement } => {
                     f.push_str(&statement.lookup().replace(
                         "<$module>",
-                        &get_module_path(self.js_module_format, &self.import_map, *module),
+                        &get_module_path(
+                            self.js_module_format,
+                            ImportModulePath::new(*module, self.js_module_format),
+                        ),
                     ));
                     Ok(())
                 }
@@ -631,7 +634,7 @@ impl<'b> JSONPrinter<'b> {
             self.top_level_statements.insert(
                 key.to_string(),
                 TopLevelStatement::ImportStatement(JSModuleDependency {
-                    path: path.intern(),
+                    path: ImportModulePath::new(path.intern(), self.js_module_format),
                     import_name: module_import_name,
                 }),
             );
@@ -652,7 +655,7 @@ impl<'b> JSONPrinter<'b> {
         &mut self,
         f: &mut String,
         graphql_module_name: StringKey,
-        graphql_module_path: StringKey,
+        graphql_module_path: ImportModulePath,
         js_module: &JSModuleDependency,
         injected_field_name_details: Option<(StringKey, bool)>,
     ) -> FmtResult {
@@ -671,16 +674,13 @@ impl<'b> JSONPrinter<'b> {
         self.write_js_dependency(
             f,
             ModuleImportName::Default(format!("{}_graphql", graphql_module_name).intern()),
-            Cow::Owned(format!(
-                "{}.graphql",
-                get_module_path(self.js_module_format, &self.import_map, graphql_module_path)
-            )),
+            get_module_path_with_extension(self.js_module_format, graphql_module_path, "graphql"),
         )?;
         write!(f, ", ")?;
         self.write_js_dependency(
             f,
             js_module.import_name.clone(),
-            get_module_path(self.js_module_format, &self.import_map, js_module.path),
+            get_module_path(self.js_module_format, js_module.path),
         )?;
         if let Some((field_name, is_required_field)) = injected_field_name_details {
             write!(f, ", '{}'", field_name)?;
@@ -690,10 +690,22 @@ impl<'b> JSONPrinter<'b> {
     }
 }
 
+pub fn get_module_path_with_extension(
+    js_module_format: JsModuleFormat,
+    key: ImportModulePath,
+    extension: &str,
+) -> Cow<'static, str> {
+    let path = get_module_path(js_module_format, key);
+
+    match key {
+        ImportModulePath::MappedPackage(_) => path,
+        _ => Cow::Owned(format!("{}.{}", path, extension)),
+    }
+}
+
 pub fn get_module_path(
     js_module_format: JsModuleFormat,
-    import_map: &ImportMap,
-    key: StringKey,
+    key: ImportModulePath,
 ) -> Cow<'static, str> {
     match js_module_format {
         JsModuleFormat::CommonJS => {
@@ -708,18 +720,31 @@ pub fn get_module_path(
                         .to_str()
                         .expect("could not convert `path_without_extension` to a str");
 
-                    let path = import_map
-                        .resolve_path(&path_without_extension)
-                        .unwrap_or(format!("./{}", path_without_extension));
-
-                    return Cow::Owned(path);
+                    return match key {
+                        ImportModulePath::OriginalPath(_) => {
+                            Cow::Owned(format!("./{}", &path_without_extension))
+                        }
+                        ImportModulePath::MappedFile(_) => {
+                            Cow::Owned(path_without_extension.to_string())
+                        }
+                        ImportModulePath::MappedPackage(_) => {
+                            Cow::Owned(path_without_extension.to_string())
+                        }
+                        _ => {
+                            panic!("Unexpected module path: {:?}", key);
+                        }
+                    };
                 }
             }
 
-            let path = import_map
-                .resolve_path(key.lookup())
-                .unwrap_or(format!("./{}", key.borrow()));
-            Cow::Owned(path)
+            return match key {
+                ImportModulePath::OriginalPath(_) => Cow::Owned(format!("./{}", key)),
+                ImportModulePath::MappedFile(_) => Cow::Owned(key.to_string()),
+                ImportModulePath::MappedPackage(_) => Cow::Owned(key.to_string()),
+                _ => {
+                    panic!("Unexpected module path: {:?}", key);
+                }
+            };
         }
         JsModuleFormat::Haste => Cow::Borrowed(key.lookup()),
     }

@@ -25,6 +25,7 @@ use indexmap::IndexMap;
 use itertools::Itertools;
 use lazy_static::lazy_static;
 use relay_config::CustomTypeImport;
+use relay_config::ImportModulePath;
 use relay_config::JsModuleFormat;
 use relay_config::TypegenLanguage;
 use relay_transforms::RefetchableDerivedFromMetadata;
@@ -477,13 +478,24 @@ pub(crate) fn write_fragment_type_exports_section(
         match typegen_context.project_config.js_module_format {
             JsModuleFormat::CommonJS => {
                 if typegen_context.has_unified_output {
+                    let operation_path = format!("{}", refetchable_metadata.operation_name);
                     let new_path = typegen_context
-                        .resolve_path_with_import_map(&format!(
-                            "{}",
-                            refetchable_metadata.operation_name
-                        ))
-                        .map(|path| format!("{}.graphql", path))
-                        .unwrap_or(format!("./{}.graphql", refetchable_metadata.operation_name));
+                        .resolve_path_with_import_map(&operation_path)
+                        .unwrap_or(ImportModulePath::new(
+                            operation_path.intern(),
+                            JsModuleFormat::CommonJS,
+                        ));
+
+                    let new_path = match new_path {
+                        ImportModulePath::MappedFile(_) => format!("{}.graphql", new_path),
+                        ImportModulePath::MappedPackage(_) => format!("{}", new_path),
+                        ImportModulePath::OriginalPath(_) => {
+                            format!("./{}.graphql", new_path)
+                        }
+                        ImportModulePath::HasteModule(string_key) => {
+                            panic!("Expected a file path, got a haste module: {}", string_key);
+                        }
+                    };
 
                     writer.write_import_fragment_type(&[&variables_name], &new_path)?;
                 } else {
@@ -563,10 +575,24 @@ fn write_fragment_imports(
         match typegen_context.project_config.js_module_format {
             JsModuleFormat::CommonJS => {
                 if typegen_context.has_unified_output {
+                    let fragment_path = format!("{}", current_referenced_fragment);
                     let new_path = typegen_context
-                        .resolve_path_with_import_map(&format!("{}", current_referenced_fragment))
-                        .map(|path| format!("{}.graphql", path))
-                        .unwrap_or(format!("./{}.graphql", current_referenced_fragment));
+                        .resolve_path_with_import_map(&fragment_path)
+                        .unwrap_or(ImportModulePath::new(
+                            fragment_path.intern(),
+                            JsModuleFormat::CommonJS,
+                        ));
+
+                    let new_path = match new_path {
+                        ImportModulePath::MappedFile(key) => format!("{}.graphql", key),
+                        ImportModulePath::MappedPackage(key) => key.lookup().to_string(),
+                        ImportModulePath::OriginalPath(key) => {
+                            format!("./{}.graphql", key)
+                        }
+                        ImportModulePath::HasteModule(string_key) => {
+                            panic!("Expected a file path, got a haste module: {}", string_key);
+                        }
+                    };
 
                     writer.write_import_fragment_type(&[&fragment_type_name], &new_path)?;
                 } else {
@@ -591,10 +617,16 @@ fn write_fragment_imports(
                             ),
                         );
 
-                    let new_path = typegen_context
-                        .resolve_path_with_import_map(&format!("{}", fragment_import_path))
-                        .map(|path| format!("{}.graphql", path))
-                        .unwrap_or(format!("./{}.graphql", fragment_import_path));
+                    let new_path = match fragment_import_path {
+                        ImportModulePath::MappedFile(key) => format!("{}.graphql", key),
+                        ImportModulePath::MappedPackage(key) => key.lookup().to_string(),
+                        ImportModulePath::OriginalPath(key) => {
+                            format!("./{}.graphql", key)
+                        }
+                        ImportModulePath::HasteModule(_) => {
+                            panic!("Expected a file path, got a haste module.");
+                        }
+                    };
 
                     writer.write_import_fragment_type(&[&fragment_type_name], &new_path)?;
                 }
@@ -678,9 +710,22 @@ fn write_split_raw_response_type_imports(
             JsModuleFormat::CommonJS => {
                 if typegen_context.has_unified_output {
                     let new_path = typegen_context
-                        .resolve_path_with_import_map(&format!("{}", imported_raw_response_type))
-                        .map(|path| format!("{}.graphql", path))
-                        .unwrap_or(format!("./{}.graphql", imported_raw_response_type));
+                        .resolve_path_with_import_map(imported_raw_response_type.lookup())
+                        .unwrap_or(ImportModulePath::new(
+                            imported_raw_response_type,
+                            JsModuleFormat::CommonJS,
+                        ));
+
+                    let new_path = match new_path {
+                        ImportModulePath::MappedFile(key) => format!("{}.graphql", key),
+                        ImportModulePath::MappedPackage(key) => key.lookup().to_string(),
+                        ImportModulePath::OriginalPath(key) => {
+                            format!("./{}.graphql", key)
+                        }
+                        ImportModulePath::HasteModule(string_key) => {
+                            panic!("Expected a file path, got a haste module: {}", string_key);
+                        }
+                    };
 
                     writer.write_import_fragment_type(
                         &[imported_raw_response_type.lookup()],
@@ -700,10 +745,16 @@ fn write_split_raw_response_type_imports(
                             ),
                         );
 
-                    let new_path = typegen_context
-                        .resolve_path_with_import_map(&format!("{}", artifact_import_path))
-                        .map(|path| format!("{}.graphql", path))
-                        .unwrap_or(format!("./{}.graphql", artifact_import_path));
+                    let new_path = match artifact_import_path {
+                        ImportModulePath::MappedFile(key) => format!("{}.graphql", key),
+                        ImportModulePath::MappedPackage(key) => key.lookup().to_string(),
+                        ImportModulePath::OriginalPath(key) => {
+                            format!("./{}.graphql", key)
+                        }
+                        ImportModulePath::HasteModule(_) => {
+                            panic!("Expected a file path, got a haste module.");
+                        }
+                    };
 
                     writer.write_import_fragment_type(
                         &[imported_raw_response_type.lookup()],

@@ -1,24 +1,55 @@
-use std::path::MAIN_SEPARATOR;
+use std::{
+    fmt::{Display, Formatter, Result},
+    path::MAIN_SEPARATOR,
+};
 
 use fnv::FnvBuildHasher;
 use indexmap::IndexMap;
-use intern::string_key::StringKey;
+use intern::{
+    string_key::{Intern, StringKey},
+    Lookup,
+};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
+use crate::JsModuleFormat;
+
 pub type FnvIndexMap<K, V> = IndexMap<K, V, FnvBuildHasher>;
 
-#[derive(Eq, PartialEq, Hash, PartialOrd, Ord, Debug, Clone)]
-pub enum ImportDeclarationKind {
-    AbsoluteSource(StringKey),
-    RelativeSource(StringKey),
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum ImportModulePath {
+    // Original path which is not remapped by the import map
+    OriginalPath(StringKey),
+    // Meta path for haste modules
+    HasteModule(StringKey),
+    // Remapped path by the import map, pointing to a file
+    MappedFile(StringKey),
+    // Remapped path by the import map, pointing to a package (no file extension like .graphql)
+    MappedPackage(StringKey),
 }
 
-impl ImportDeclarationKind {
-    pub fn key(&self) -> StringKey {
+impl ImportModulePath {
+    pub fn new(key: StringKey, module_format: JsModuleFormat) -> Self {
+        match module_format {
+            JsModuleFormat::CommonJS => ImportModulePath::OriginalPath(key),
+            JsModuleFormat::Haste => ImportModulePath::HasteModule(key),
+        }
+    }
+}
+
+impl Display for ImportModulePath {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        write!(f, "{}", self.lookup())
+    }
+}
+
+impl Lookup for ImportModulePath {
+    fn lookup(self) -> &'static str {
         match self {
-            ImportDeclarationKind::AbsoluteSource(source) => source.clone(),
-            ImportDeclarationKind::RelativeSource(source) => source.clone(),
+            ImportModulePath::OriginalPath(value) => value.lookup(),
+            ImportModulePath::HasteModule(value) => value.lookup(),
+            ImportModulePath::MappedFile(value) => value.lookup(),
+            ImportModulePath::MappedPackage(value) => value.lookup(),
         }
     }
 }
@@ -44,16 +75,11 @@ impl ImportMap {
         }
     }
 
-    pub fn resolve_path(&self, path: &str) -> Option<String> {
+    pub fn resolve_path(&self, path: &str) -> Option<ImportModulePath> {
         // Normalize path separators as the import map uses `/` as the separator
         let path = normalize_path(path);
         if self.map.is_empty() {
             return None;
-        }
-
-        // If this is called with a remapped path (e.g. `@1js/my-package`), we should return it as is
-        if self.is_remapped_path(&path) {
-            return Some(path.to_string());
         }
 
         let matching_key = self
@@ -65,22 +91,17 @@ impl ImportMap {
         matching_key.and_then(|matching_key| self.get_replacement_value(&path, matching_key))
     }
 
-    fn is_remapped_path(&self, path: &str) -> bool {
-        self.map.values().any(|value| path.starts_with(value))
-    }
-
-    fn get_replacement_value(&self, path: &str, matching_key: &String) -> Option<String> {
+    fn get_replacement_value(&self, path: &str, matching_key: &String) -> Option<ImportModulePath> {
         let rewrite_value = self.map.get(matching_key)?;
         if rewrite_value.ends_with("/") {
             let rewrite_value_with_trailing_slash = rewrite_value;
             let remaining_path = self.get_remaining_path(path, matching_key);
 
-            Some(format!(
-                "{}{}",
-                rewrite_value_with_trailing_slash, remaining_path
+            Some(ImportModulePath::MappedFile(
+                format!("{}{}", rewrite_value_with_trailing_slash, remaining_path).intern(),
             ))
         } else {
-            Some(rewrite_value.to_string())
+            Some(ImportModulePath::MappedPackage(rewrite_value.intern()))
         }
     }
 
@@ -113,7 +134,10 @@ mod tests {
     fn test_resolve_path() {
         let mut map = ImportMap::default();
         map.map.insert("foo".to_string(), "bar".to_string());
-        assert_eq!(map.resolve_path("foo"), Some("bar".to_string()));
+        assert_eq!(
+            map.resolve_path("foo"),
+            Some(ImportModulePath::MappedPackage("bar".intern()))
+        );
     }
 
     #[test]
@@ -131,7 +155,7 @@ mod tests {
 
         assert_eq!(
             map.resolve_path("my-package/src/index.ts"),
-            Some("@1js/my-package".to_string())
+            Some(ImportModulePath::MappedPackage("@1js/my-package".intern()))
         );
     }
 
@@ -144,7 +168,9 @@ mod tests {
 
         assert_eq!(
             map.resolve_path("my-package/src/index.ts"),
-            Some("@1js/my-package/src/index.ts".to_string())
+            Some(ImportModulePath::MappedFile(
+                "@1js/my-package/src/index.ts".intern()
+            ))
         );
     }
 
@@ -159,7 +185,9 @@ mod tests {
 
         assert_eq!(
             map.resolve_path("my-package/src/index.ts"),
-            Some("@1js/my-package/lib/index.ts".to_string())
+            Some(ImportModulePath::MappedFile(
+                "@1js/my-package/lib/index.ts".intern()
+            ))
         );
     }
 
@@ -177,7 +205,9 @@ mod tests {
 
         assert_eq!(
             map.resolve_path("my-package/src/index.ts"),
-            Some("@1js/my-package/lib/index.ts".to_string())
+            Some(ImportModulePath::MappedFile(
+                "@1js/my-package/lib/index.ts".intern()
+            ))
         );
     }
 
@@ -194,10 +224,10 @@ mod tests {
             map.resolve_path(
                 "my-resolvers/src/__generated__/Query__viewData$normalization.graphql"
             ),
-            Some(
+            Some(ImportModulePath::MappedFile(
                 "@1js/my-resolvers/lib/__generated__/Query__viewData$normalization.graphql"
-                    .to_string()
-            )
+                    .intern()
+            ))
         );
     }
 
@@ -214,10 +244,10 @@ mod tests {
             map.resolve_path(
                 "my-resolvers/src/__generated__/Query__viewData$normalization.graphql"
             ),
-            Some(
+            Some(ImportModulePath::MappedFile(
                 "@1js/my-resolvers/lib/__generated__/Query__viewData$normalization.graphql"
-                    .to_string()
-            )
+                    .intern()
+            ))
         );
     }
 

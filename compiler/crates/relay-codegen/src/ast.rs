@@ -12,6 +12,7 @@ use graphql_syntax::OperationKind;
 use indexmap::IndexSet;
 use intern::string_key::StringKey;
 use relay_config::DynamicModuleProvider;
+use relay_config::ImportModulePath;
 
 #[derive(Eq, PartialEq, Hash, Debug)]
 pub struct ObjectEntry {
@@ -72,7 +73,7 @@ pub enum ModuleImportName {
 
 #[derive(Eq, PartialEq, Hash, PartialOrd, Ord, Debug, Clone)]
 pub struct JSModuleDependency {
-    pub path: StringKey,
+    pub path: ImportModulePath,
     pub import_name: ModuleImportName,
 }
 
@@ -93,7 +94,7 @@ pub enum GraphQLModuleDependency {
     Name(ExecutableDefinitionName),
     Path {
         name: ExecutableDefinitionName,
-        path: StringKey,
+        path: ImportModulePath,
     },
 }
 
@@ -121,7 +122,7 @@ pub enum Primitive {
     },
     RelayResolverModel {
         graphql_module_name: StringKey,
-        graphql_module_path: StringKey,
+        graphql_module_path: ImportModulePath,
         js_module: JSModuleDependency,
         injected_field_name_details: Option<(StringKey, bool)>,
     },

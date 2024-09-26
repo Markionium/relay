@@ -25,7 +25,7 @@ pub use connection_interface::ConnectionInterface;
 pub use defer_stream_interface::DeferStreamInterface;
 pub use diagnostic_report_config::DiagnosticLevel;
 pub use diagnostic_report_config::DiagnosticReportConfig;
-pub use import_map::ImportDeclarationKind;
+pub use import_map::ImportModulePath;
 pub use import_map::ImportMap;
 pub use js_module_format::JsModuleFormat;
 pub use module_import_config::DynamicModuleProvider;

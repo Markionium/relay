@@ -38,6 +38,7 @@ use intern::Lookup;
 use lazy_static::lazy_static;
 use md5::Digest;
 use md5::Md5;
+use relay_config::ImportModulePath;
 use relay_config::JsModuleFormat;
 use relay_config::ProjectConfig;
 use relay_config::Surface;
@@ -1545,7 +1546,7 @@ impl<'schema, 'builder, 'config> CodegenBuilder<'schema, 'builder, 'config> {
     fn build_normalization_fragment_spread(
         &mut self,
         frag_spread: &FragmentSpread,
-        normalization_import_path: StringKey,
+        normalization_import_path: ImportModulePath,
     ) -> Primitive {
         let args = self.build_arguments(&frag_spread.arguments);
 
@@ -2355,7 +2356,7 @@ impl<'schema, 'builder, 'config> CodegenBuilder<'schema, 'builder, 'config> {
 
                 let provider_module =
                     if matches!(self.project_config.js_module_format, JsModuleFormat::Haste) {
-                        provider.module_name
+                        ImportModulePath::new(provider.module_name, JsModuleFormat::Haste)
                     } else {
                         // This will build a path from the operation artifact to the provider module
                         self.project_config.js_module_import_identifier(
@@ -2446,7 +2447,10 @@ impl<'schema, 'builder, 'config> CodegenBuilder<'schema, 'builder, 'config> {
                 Some(QueryID::Persisted { id, .. }) => Primitive::RawString(id.clone()),
                 Some(QueryID::External(module_name)) => {
                     Primitive::JSModuleDependency(JSModuleDependency {
-                        path: *module_name,
+                        path: ImportModulePath::new(
+                            *module_name,
+                            self.project_config.js_module_format,
+                        ),
                         import_name: ModuleImportName::Default(*module_name),
                     })
                 }

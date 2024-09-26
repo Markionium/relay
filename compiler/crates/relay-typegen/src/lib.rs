@@ -27,6 +27,7 @@ use common::WithLocation;
 use graphql_ir::FragmentDefinition;
 use graphql_ir::OperationDefinition;
 use lazy_static::lazy_static;
+use relay_config::ImportModulePath;
 use relay_config::ProjectConfig;
 pub use relay_config::TypegenConfig;
 pub use relay_config::TypegenLanguage;
@@ -306,7 +307,7 @@ impl<'a> TypegenContext<'a> {
         }
     }
 
-    pub fn resolve_path_with_import_map(&self, path: &str) -> Option<String> {
+    pub fn resolve_path_with_import_map(&self, path: &str) -> Option<ImportModulePath> {
         self.project_config.import_map.resolve_path(path)
     }
 }
