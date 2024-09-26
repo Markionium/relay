@@ -4647,6 +4647,16 @@
                 },
                 "additionalProperties": false
               },
+              "importMap": {
+                "default": null,
+                "type": [
+                  "object",
+                  "null"
+                ],
+                "additionalProperties": {
+                  "type": "string"
+                }
+              },
               "jsModuleFormat": {
                 "description": "Formatting style for generated files.",
                 "default": "commonjs",

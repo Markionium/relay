@@ -73,5 +73,5 @@ pub(crate) use is_local_file::is_local_file;
 pub use operation_persister::LocalPersister;
 pub use operation_persister::RemotePersister;
 pub use relay_config::ProjectName;
-pub use relay_config::ReverseImportMap;
+pub use relay_config::ImportMap;
 pub use utils::get_parser_features;

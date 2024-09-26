@@ -22,8 +22,8 @@ use intern::string_key::StringKey;
 use intern::Lookup;
 use path_slash::PathExt as _;
 use relay_config::DynamicModuleProvider;
+use relay_config::ImportMap;
 use relay_config::ProjectConfig;
-use relay_config::ReverseImportMap;
 use schema::SDLSchema;
 
 use crate::ast::Ast;
@@ -324,7 +324,7 @@ pub struct JSONPrinter<'b> {
     js_module_format: JsModuleFormat,
     top_level_statements: &'b mut TopLevelStatements,
     skip_printing_nulls: bool,
-    import_map: ReverseImportMap,
+    import_map: ImportMap,
 }
 
 impl<'b> JSONPrinter<'b> {
@@ -540,9 +540,9 @@ impl<'b> JSONPrinter<'b> {
                 self.write_js_dependency(
                     f,
                     ModuleImportName::Default(format!("{}_graphql", variable_name).intern()),
-                    self.import_map.resolve_path(format!(
+                    Cow::Owned(format!(
                         "{}.graphql",
-                        get_module_path(self.js_module_format, *key)
+                        get_module_path(self.js_module_format, *key, &self.import_map)
                     )),
                 )
             }
@@ -550,8 +550,7 @@ impl<'b> JSONPrinter<'b> {
                 .write_js_dependency(
                     f,
                     import_name.clone(),
-                    self.import_map
-                        .resolve_path(get_module_path(self.js_module_format, *path).to_string()),
+                    get_module_path(self.js_module_format, *path, &self.import_map),
                 ),
             Primitive::ResolverModuleReference(ResolverModuleReference {
                 field_type,
@@ -573,7 +572,7 @@ impl<'b> JSONPrinter<'b> {
                 DynamicModuleProvider::Custom { statement } => {
                     f.push_str(&statement.lookup().replace(
                         "<$module>",
-                        &get_module_path(self.js_module_format, *module),
+                        &get_module_path(self.js_module_format, *module, &self.import_map),
                     ));
                     Ok(())
                 }
@@ -674,14 +673,14 @@ impl<'b> JSONPrinter<'b> {
             ModuleImportName::Default(format!("{}_graphql", graphql_module_name).intern()),
             Cow::Owned(format!(
                 "{}.graphql",
-                get_module_path(self.js_module_format, graphql_module_path)
+                get_module_path(self.js_module_format, graphql_module_path, &self.import_map)
             )),
         )?;
         write!(f, ", ")?;
         self.write_js_dependency(
             f,
             js_module.import_name.clone(),
-            get_module_path(self.js_module_format, js_module.path),
+            get_module_path(self.js_module_format, js_module.path, &self.import_map),
         )?;
         if let Some((field_name, is_required_field)) = injected_field_name_details {
             write!(f, ", '{}'", field_name)?;
@@ -691,7 +690,11 @@ impl<'b> JSONPrinter<'b> {
     }
 }
 
-pub fn get_module_path(js_module_format: JsModuleFormat, key: StringKey) -> Cow<'static, str> {
+pub fn get_module_path(
+    js_module_format: JsModuleFormat,
+    key: StringKey,
+    import_map: &ImportMap,
+) -> Cow<'static, str> {
     match js_module_format {
         JsModuleFormat::CommonJS => {
             let path = Path::new(key.lookup());
@@ -705,10 +708,18 @@ pub fn get_module_path(js_module_format: JsModuleFormat, key: StringKey) -> Cow<
                         .to_str()
                         .expect("could not convert `path_without_extension` to a str");
 
-                    return Cow::Owned(format!("./{}", path_without_extension));
+                    let path = import_map
+                        .resolve_path(&path_without_extension)
+                        .unwrap_or(format!("./{}", path_without_extension));
+
+                    return Cow::Owned(path);
                 }
             }
-            Cow::Owned(format!("./{}", key.borrow()))
+
+            let path = import_map
+                .resolve_path(key.lookup())
+                .unwrap_or(format!("./{}", key.borrow()));
+            Cow::Owned(path)
         }
         JsModuleFormat::Haste => Cow::Borrowed(key.lookup()),
     }

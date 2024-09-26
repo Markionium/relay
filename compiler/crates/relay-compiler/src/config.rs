@@ -34,6 +34,7 @@ use regex::Regex;
 use relay_config::CustomType;
 use relay_config::DiagnosticReportConfig;
 pub use relay_config::ExtraArtifactsConfig;
+use relay_config::ImportMap;
 use relay_config::JsModuleFormat;
 pub use relay_config::LocalPersistConfig;
 use relay_config::ModuleImportConfig;
@@ -42,7 +43,6 @@ pub use relay_config::ProjectConfig;
 use relay_config::ProjectName;
 pub use relay_config::RemotePersistConfig;
 use relay_config::ResolversSchemaModuleConfig;
-use relay_config::ReverseImportMap;
 use relay_config::SchemaConfig;
 pub use relay_config::SchemaLocation;
 use relay_config::TypegenConfig;
@@ -428,7 +428,7 @@ impl Config {
                     resolvers_schema_module: config_file_project.resolvers_schema_module,
                     codegen_command: config_file_project.codegen_command,
                     get_custom_path_for_artifact: None,
-                    import_map: ReverseImportMap::from(config_file_project.import_map),
+                    import_map: ImportMap::new(config_file_project.import_map),
                 };
                 Ok((project_name, project_config))
             })

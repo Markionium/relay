@@ -477,10 +477,14 @@ pub(crate) fn write_fragment_type_exports_section(
         match typegen_context.project_config.js_module_format {
             JsModuleFormat::CommonJS => {
                 if typegen_context.has_unified_output {
-                    writer.write_import_fragment_type(
-                        &[&variables_name],
-                        &format!("./{}.graphql", refetchable_metadata.operation_name),
-                    )?;
+                    let new_path = typegen_context
+                        .project_config
+                        .import_map
+                        .resolve_path(&format!("{}", refetchable_metadata.operation_name))
+                        .map(|path| format!("{}.graphql", path))
+                        .unwrap_or(format!("./{}.graphql", refetchable_metadata.operation_name));
+
+                    writer.write_import_fragment_type(&[&variables_name], &new_path)?;
                 } else {
                     writer.write_any_type_definition(&variables_name)?;
                 }
@@ -558,10 +562,14 @@ fn write_fragment_imports(
         match typegen_context.project_config.js_module_format {
             JsModuleFormat::CommonJS => {
                 if typegen_context.has_unified_output {
-                    writer.write_import_fragment_type(
-                        &[&fragment_type_name],
-                        &format!("./{}.graphql", current_referenced_fragment),
-                    )?;
+                    let new_path = typegen_context
+                        .project_config
+                        .import_map
+                        .resolve_path(&format!("{}", current_referenced_fragment))
+                        .map(|path| format!("{}.graphql", path))
+                        .unwrap_or(format!("./{}.graphql", current_referenced_fragment));
+
+                    writer.write_import_fragment_type(&[&fragment_type_name], &new_path)?;
                 } else {
                     let fragment_location = typegen_context
                         .fragment_locations
@@ -584,10 +592,14 @@ fn write_fragment_imports(
                             ),
                         );
 
-                    writer.write_import_fragment_type(
-                        &[&fragment_type_name],
-                        &format!("./{}.graphql", fragment_import_path),
-                    )?;
+                    let new_path = typegen_context
+                        .project_config
+                        .import_map
+                        .resolve_path(&format!("{}", fragment_import_path))
+                        .map(|path| format!("{}.graphql", path))
+                        .unwrap_or(format!("./{}.graphql", fragment_import_path));
+
+                    writer.write_import_fragment_type(&[&fragment_type_name], &new_path)?;
                 }
             }
             JsModuleFormat::Haste => {
@@ -668,9 +680,16 @@ fn write_split_raw_response_type_imports(
         match typegen_context.project_config.js_module_format {
             JsModuleFormat::CommonJS => {
                 if typegen_context.has_unified_output {
+                    let new_path = typegen_context
+                        .project_config
+                        .import_map
+                        .resolve_path(&format!("{}", imported_raw_response_type))
+                        .map(|path| format!("{}.graphql", path))
+                        .unwrap_or(format!("./{}.graphql", imported_raw_response_type));
+
                     writer.write_import_fragment_type(
                         &[imported_raw_response_type.lookup()],
-                        &format!("./{}.graphql", imported_raw_response_type),
+                        &new_path,
                     )?;
                 } else if let Some(imported_raw_response_document_location) =
                     imported_raw_response_document_location
@@ -686,9 +705,16 @@ fn write_split_raw_response_type_imports(
                             ),
                         );
 
+                    let new_path = typegen_context
+                        .project_config
+                        .import_map
+                        .resolve_path(&format!("{}", artifact_import_path))
+                        .map(|path| format!("{}.graphql", path))
+                        .unwrap_or(format!("./{}.graphql", artifact_import_path));
+
                     writer.write_import_fragment_type(
                         &[imported_raw_response_type.lookup()],
-                        &format!("./{}.graphql", artifact_import_path),
+                        &new_path,
                     )?;
                 } else {
                     writer.write_any_type_definition(imported_raw_response_type.lookup())?;

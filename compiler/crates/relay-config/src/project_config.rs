@@ -36,9 +36,9 @@ use crate::diagnostic_report_config::DiagnosticReportConfig;
 use crate::module_import_config::ModuleImportConfig;
 use crate::non_node_id_fields_config::NonNodeIdFieldsConfig;
 use crate::resolvers_schema_module_config::ResolversSchemaModuleConfig;
+use crate::ImportMap;
 use crate::JsModuleFormat;
 use crate::ProjectName;
-use crate::ReverseImportMap;
 use crate::TypegenConfig;
 use crate::TypegenLanguage;
 
@@ -255,11 +255,8 @@ pub struct ProjectConfig {
     pub diagnostic_report_config: DiagnosticReportConfig,
     pub resolvers_schema_module: Option<ResolversSchemaModuleConfig>,
     pub codegen_command: Option<String>,
-<<<<<<< HEAD
     pub get_custom_path_for_artifact: Option<CustomArtifactFilePath>,
-=======
-    pub import_map: ReverseImportMap,
->>>>>>> e3078edba6 (Add support for package mapping)
+    pub import_map: ImportMap,
 }
 
 impl Default for ProjectConfig {
@@ -289,11 +286,8 @@ impl Default for ProjectConfig {
             diagnostic_report_config: Default::default(),
             resolvers_schema_module: Default::default(),
             codegen_command: Default::default(),
-<<<<<<< HEAD
             get_custom_path_for_artifact: None,
-=======
-            import_map: ReverseImportMap::new(),
->>>>>>> e3078edba6 (Add support for package mapping)
+            import_map: ImportMap::default(),
         }
     }
 }
@@ -325,11 +319,8 @@ impl Debug for ProjectConfig {
             diagnostic_report_config,
             resolvers_schema_module,
             codegen_command,
-<<<<<<< HEAD
             get_custom_path_for_artifact: _,
-=======
             import_map,
->>>>>>> e3078edba6 (Add support for package mapping)
         } = self;
         f.debug_struct("ProjectConfig")
             .field("name", name)
@@ -440,6 +431,13 @@ impl ProjectConfig {
     ) -> StringKey {
         match self.js_module_format {
             JsModuleFormat::CommonJS => {
+                if let Some(path) = self
+                    .import_map
+                    .resolve_path(&format_normalized_path(target_module_path))
+                {
+                    return path.intern();
+                }
+
                 let importing_artifact_directory = importing_artifact_path.parent().unwrap_or_else(||{
                     panic!(
                         "expected importing_artifact_path: {:?} to have a parent path, maybe it's not a file?",
@@ -461,7 +459,6 @@ impl ProjectConfig {
                 let relative_path =
                     pathdiff::diff_paths(target_module_directory, importing_artifact_directory)
                         .unwrap();
-
                 format_normalized_path(&relative_path.join(target_module_file_name)).intern()
             }
             JsModuleFormat::Haste => target_module_path
