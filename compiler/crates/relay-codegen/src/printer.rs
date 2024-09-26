@@ -523,17 +523,14 @@ impl<'b> JSONPrinter<'b> {
                     match dependency {
                         GraphQLModuleDependency::Name(name) => (
                             name,
-                            ImportModulePath::new(
-                                match name {
-                                    ExecutableDefinitionName::OperationDefinitionName(
-                                        operation_name,
-                                    ) => operation_name.0,
-                                    ExecutableDefinitionName::FragmentDefinitionName(
-                                        fragment_name,
-                                    ) => fragment_name.0,
-                                },
-                                self.js_module_format,
-                            ),
+                            ImportModulePath::new(match name {
+                                ExecutableDefinitionName::OperationDefinitionName(
+                                    operation_name,
+                                ) => operation_name.0,
+                                ExecutableDefinitionName::FragmentDefinitionName(fragment_name) => {
+                                    fragment_name.0
+                                }
+                            }),
                         ),
                         GraphQLModuleDependency::Path { name, path } => (name, path.to_owned()),
                     };
@@ -560,10 +557,7 @@ impl<'b> JSONPrinter<'b> {
                     self.top_level_statements.insert(
                         "JSResource".to_string(),
                         TopLevelStatement::ImportStatement(JSModuleDependency {
-                            path: ImportModulePath::new(
-                                "JSResource".intern(),
-                                self.js_module_format,
-                            ),
+                            path: ImportModulePath::new("JSResource".intern()),
                             import_name: ModuleImportName::Default("JSResource".intern()),
                         }),
                     );
@@ -572,10 +566,7 @@ impl<'b> JSONPrinter<'b> {
                 DynamicModuleProvider::Custom { statement } => {
                     f.push_str(&statement.lookup().replace(
                         "<$module>",
-                        &get_module_path(
-                            self.js_module_format,
-                            ImportModulePath::new(*module, self.js_module_format),
-                        ),
+                        &get_module_path(self.js_module_format, ImportModulePath::new(*module)),
                     ));
                     Ok(())
                 }
@@ -634,7 +625,7 @@ impl<'b> JSONPrinter<'b> {
             self.top_level_statements.insert(
                 key.to_string(),
                 TopLevelStatement::ImportStatement(JSModuleDependency {
-                    path: ImportModulePath::new(path.intern(), self.js_module_format),
+                    path: ImportModulePath::new(path.intern()),
                     import_name: module_import_name,
                 }),
             );

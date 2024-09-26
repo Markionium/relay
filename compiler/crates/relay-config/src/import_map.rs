@@ -12,8 +12,6 @@ use intern::{
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::JsModuleFormat;
-
 pub type FnvIndexMap<K, V> = IndexMap<K, V, FnvBuildHasher>;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -27,7 +25,7 @@ pub enum ImportModulePath {
 }
 
 impl ImportModulePath {
-    pub fn new(key: StringKey, _module_format: JsModuleFormat) -> Self {
+    pub fn new(key: StringKey) -> Self {
         ImportModulePath::OriginalPath(key)
     }
 }

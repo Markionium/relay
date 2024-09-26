@@ -481,10 +481,7 @@ pub(crate) fn write_fragment_type_exports_section(
                     let operation_path = format!("{}", refetchable_metadata.operation_name);
                     let new_path = typegen_context
                         .resolve_path_with_import_map(&operation_path)
-                        .unwrap_or(ImportModulePath::new(
-                            operation_path.intern(),
-                            JsModuleFormat::CommonJS,
-                        ));
+                        .unwrap_or(ImportModulePath::new(operation_path.intern()));
 
                     let new_path = match new_path {
                         ImportModulePath::MappedFile(_) => format!("{}.graphql", new_path),
@@ -575,10 +572,7 @@ fn write_fragment_imports(
                     let fragment_path = format!("{}", current_referenced_fragment);
                     let new_path = typegen_context
                         .resolve_path_with_import_map(&fragment_path)
-                        .unwrap_or(ImportModulePath::new(
-                            fragment_path.intern(),
-                            JsModuleFormat::CommonJS,
-                        ));
+                        .unwrap_or(ImportModulePath::new(fragment_path.intern()));
 
                     let new_path = match new_path {
                         ImportModulePath::MappedFile(key) => format!("{}.graphql", key),
@@ -702,10 +696,7 @@ fn write_split_raw_response_type_imports(
                 if typegen_context.has_unified_output {
                     let new_path = typegen_context
                         .resolve_path_with_import_map(imported_raw_response_type.lookup())
-                        .unwrap_or(ImportModulePath::new(
-                            imported_raw_response_type,
-                            JsModuleFormat::CommonJS,
-                        ));
+                        .unwrap_or(ImportModulePath::new(imported_raw_response_type));
 
                     let new_path = match new_path {
                         ImportModulePath::MappedFile(key) => format!("{}.graphql", key),

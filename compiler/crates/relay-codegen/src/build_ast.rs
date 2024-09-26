@@ -2356,7 +2356,7 @@ impl<'schema, 'builder, 'config> CodegenBuilder<'schema, 'builder, 'config> {
 
                 let provider_module =
                     if matches!(self.project_config.js_module_format, JsModuleFormat::Haste) {
-                        ImportModulePath::new(provider.module_name, JsModuleFormat::Haste)
+                        ImportModulePath::new(provider.module_name)
                     } else {
                         // This will build a path from the operation artifact to the provider module
                         self.project_config.js_module_import_identifier(
@@ -2447,10 +2447,7 @@ impl<'schema, 'builder, 'config> CodegenBuilder<'schema, 'builder, 'config> {
                 Some(QueryID::Persisted { id, .. }) => Primitive::RawString(id.clone()),
                 Some(QueryID::External(module_name)) => {
                     Primitive::JSModuleDependency(JSModuleDependency {
-                        path: ImportModulePath::new(
-                            *module_name,
-                            self.project_config.js_module_format,
-                        ),
+                        path: ImportModulePath::new(*module_name),
                         import_name: ModuleImportName::Default(*module_name),
                     })
                 }
