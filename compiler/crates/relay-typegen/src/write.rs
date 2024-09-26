@@ -492,9 +492,6 @@ pub(crate) fn write_fragment_type_exports_section(
                         ImportModulePath::OriginalPath(_) => {
                             format!("./{}.graphql", new_path)
                         }
-                        ImportModulePath::HasteModule(string_key) => {
-                            panic!("Expected a file path, got a haste module: {}", string_key);
-                        }
                     };
 
                     writer.write_import_fragment_type(&[&variables_name], &new_path)?;
@@ -589,9 +586,6 @@ fn write_fragment_imports(
                         ImportModulePath::OriginalPath(key) => {
                             format!("./{}.graphql", key)
                         }
-                        ImportModulePath::HasteModule(string_key) => {
-                            panic!("Expected a file path, got a haste module: {}", string_key);
-                        }
                     };
 
                     writer.write_import_fragment_type(&[&fragment_type_name], &new_path)?;
@@ -622,9 +616,6 @@ fn write_fragment_imports(
                         ImportModulePath::MappedPackage(key) => key.lookup().to_string(),
                         ImportModulePath::OriginalPath(key) => {
                             format!("./{}.graphql", key)
-                        }
-                        ImportModulePath::HasteModule(_) => {
-                            panic!("Expected a file path, got a haste module.");
                         }
                     };
 
@@ -722,9 +713,6 @@ fn write_split_raw_response_type_imports(
                         ImportModulePath::OriginalPath(key) => {
                             format!("./{}.graphql", key)
                         }
-                        ImportModulePath::HasteModule(string_key) => {
-                            panic!("Expected a file path, got a haste module: {}", string_key);
-                        }
                     };
 
                     writer.write_import_fragment_type(
@@ -750,9 +738,6 @@ fn write_split_raw_response_type_imports(
                         ImportModulePath::MappedPackage(key) => key.lookup().to_string(),
                         ImportModulePath::OriginalPath(key) => {
                             format!("./{}.graphql", key)
-                        }
-                        ImportModulePath::HasteModule(_) => {
-                            panic!("Expected a file path, got a haste module.");
                         }
                     };
 

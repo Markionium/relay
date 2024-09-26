@@ -730,9 +730,6 @@ pub fn get_module_path(
                         ImportModulePath::MappedPackage(_) => {
                             Cow::Owned(path_without_extension.to_string())
                         }
-                        _ => {
-                            panic!("Unexpected module path: {:?}", key);
-                        }
                     };
                 }
             }
@@ -741,9 +738,6 @@ pub fn get_module_path(
                 ImportModulePath::OriginalPath(_) => Cow::Owned(format!("./{}", key)),
                 ImportModulePath::MappedFile(_) => Cow::Owned(key.to_string()),
                 ImportModulePath::MappedPackage(_) => Cow::Owned(key.to_string()),
-                _ => {
-                    panic!("Unexpected module path: {:?}", key);
-                }
             };
         }
         JsModuleFormat::Haste => Cow::Borrowed(key.lookup()),

@@ -465,7 +465,7 @@ impl ProjectConfig {
                     format_normalized_path(&relative_path.join(target_module_file_name)).intern(),
                 )
             }
-            JsModuleFormat::Haste => ImportModulePath::HasteModule(
+            JsModuleFormat::Haste => ImportModulePath::OriginalPath(
                 target_module_path
                     .file_stem()
                     .unwrap()

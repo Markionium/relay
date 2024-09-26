@@ -20,8 +20,6 @@ pub type FnvIndexMap<K, V> = IndexMap<K, V, FnvBuildHasher>;
 pub enum ImportModulePath {
     // Original path which is not remapped by the import map
     OriginalPath(StringKey),
-    // Meta path for haste modules
-    HasteModule(StringKey),
     // Remapped path by the import map, pointing to a file
     MappedFile(StringKey),
     // Remapped path by the import map, pointing to a package (no file extension like .graphql)
@@ -29,11 +27,8 @@ pub enum ImportModulePath {
 }
 
 impl ImportModulePath {
-    pub fn new(key: StringKey, module_format: JsModuleFormat) -> Self {
-        match module_format {
-            JsModuleFormat::CommonJS => ImportModulePath::OriginalPath(key),
-            JsModuleFormat::Haste => ImportModulePath::HasteModule(key),
-        }
+    pub fn new(key: StringKey, _module_format: JsModuleFormat) -> Self {
+        ImportModulePath::OriginalPath(key)
     }
 }
 
@@ -47,7 +42,6 @@ impl Lookup for ImportModulePath {
     fn lookup(self) -> &'static str {
         match self {
             ImportModulePath::OriginalPath(value) => value.lookup(),
-            ImportModulePath::HasteModule(value) => value.lookup(),
             ImportModulePath::MappedFile(value) => value.lookup(),
             ImportModulePath::MappedPackage(value) => value.lookup(),
         }
