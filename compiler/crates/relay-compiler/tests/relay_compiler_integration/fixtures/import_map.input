@@ -1,0 +1,37 @@
+//- my-resolvers/src/foo.ts
+/**
+ * @RelayResolver User.foo: RelayResolverValue
+ * @live
+ */
+
+
+//- app/src/bar.ts
+graphql`fragment barFragment on User {
+   foo
+}`
+
+//- relay.config.json
+{
+  "root": "./",
+  "sources": {
+    "app/src": "app",
+    "my-resolvers/src": "app"
+  },
+  "projects": {
+    "app": {
+      "language": "typescript",
+      "schema": "schema.graphql",
+      "eagerEsModules": true,
+      "featureFlags": {
+         "enable_relay_resolver_transform": true
+      },
+      "importMap": {
+         "my-resolvers/src": "@1js/my-resolvers"
+      }
+    }
+   }
+}
+
+//- schema.graphql
+type Query { user: User }
+type User { name: String }

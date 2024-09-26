@@ -542,7 +542,7 @@ impl<'b> JSONPrinter<'b> {
                     ModuleImportName::Default(format!("{}_graphql", variable_name).intern()),
                     Cow::Owned(format!(
                         "{}.graphql",
-                        get_module_path(self.js_module_format, *key, &self.import_map)
+                        get_module_path(self.js_module_format, &self.import_map, *key)
                     )),
                 )
             }
@@ -550,7 +550,7 @@ impl<'b> JSONPrinter<'b> {
                 .write_js_dependency(
                     f,
                     import_name.clone(),
-                    get_module_path(self.js_module_format, *path, &self.import_map),
+                    get_module_path(self.js_module_format, &self.import_map, *path),
                 ),
             Primitive::ResolverModuleReference(ResolverModuleReference {
                 field_type,
@@ -572,7 +572,7 @@ impl<'b> JSONPrinter<'b> {
                 DynamicModuleProvider::Custom { statement } => {
                     f.push_str(&statement.lookup().replace(
                         "<$module>",
-                        &get_module_path(self.js_module_format, *module, &self.import_map),
+                        &get_module_path(self.js_module_format, &self.import_map, *module),
                     ));
                     Ok(())
                 }
@@ -673,14 +673,14 @@ impl<'b> JSONPrinter<'b> {
             ModuleImportName::Default(format!("{}_graphql", graphql_module_name).intern()),
             Cow::Owned(format!(
                 "{}.graphql",
-                get_module_path(self.js_module_format, graphql_module_path, &self.import_map)
+                get_module_path(self.js_module_format, &self.import_map, graphql_module_path)
             )),
         )?;
         write!(f, ", ")?;
         self.write_js_dependency(
             f,
             js_module.import_name.clone(),
-            get_module_path(self.js_module_format, js_module.path, &self.import_map),
+            get_module_path(self.js_module_format, &self.import_map, js_module.path),
         )?;
         if let Some((field_name, is_required_field)) = injected_field_name_details {
             write!(f, ", '{}'", field_name)?;
@@ -692,8 +692,8 @@ impl<'b> JSONPrinter<'b> {
 
 pub fn get_module_path(
     js_module_format: JsModuleFormat,
-    key: StringKey,
     import_map: &ImportMap,
+    key: StringKey,
 ) -> Cow<'static, str> {
     match js_module_format {
         JsModuleFormat::CommonJS => {
