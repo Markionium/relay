@@ -48,21 +48,22 @@ impl Lookup for ImportModulePath {
 
 #[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, Default)]
 pub struct ImportMap {
-    map: FnvIndexMap<String, String>,
+    // Map containing the original path/prefix as the key and the remapped path as the value
+    import_map: FnvIndexMap<String, String>,
 }
 
 impl ImportMap {
-    pub fn new(map: Option<FnvIndexMap<String, String>>) -> Self {
-        match map {
-            Some(map) => Self {
-                map: map
+    pub fn new(import_map: Option<FnvIndexMap<String, String>>) -> Self {
+        match import_map {
+            Some(import_map) => Self {
+                import_map: import_map
                     .iter()
                     // Remove trailing slashes from keys
                     .map(|(k, v)| (remove_trailing_slashes_from_key(k), v.clone()))
                     .collect::<FnvIndexMap<String, String>>(),
             },
             None => Self {
-                map: FnvIndexMap::default(),
+                import_map: FnvIndexMap::default(),
             },
         }
     }
@@ -70,12 +71,12 @@ impl ImportMap {
     pub fn resolve_path(&self, path: &str) -> Option<ImportModulePath> {
         // Normalize path separators as the import map uses `/` as the separator
         let path = normalize_path(path);
-        if self.map.is_empty() {
+        if self.import_map.is_empty() {
             return None;
         }
 
         let matching_key = self
-            .map
+            .import_map
             .keys()
             .filter(|key| path.starts_with(key.as_str()))
             .max_by_key(|key| key.len());
@@ -84,7 +85,7 @@ impl ImportMap {
     }
 
     fn get_replacement_value(&self, path: &str, matching_key: &String) -> Option<ImportModulePath> {
-        let rewrite_value = self.map.get(matching_key)?;
+        let rewrite_value = self.import_map.get(matching_key)?;
         if rewrite_value.ends_with("/") {
             let rewrite_value_with_trailing_slash = rewrite_value;
             let remaining_path = self.get_remaining_path(path, matching_key);
@@ -119,13 +120,13 @@ mod tests {
     #[test]
     fn test_reverse_import_map() {
         let map = ImportMap::default();
-        assert_eq!(map.map.len(), 0);
+        assert_eq!(map.import_map.len(), 0);
     }
 
     #[test]
     fn test_resolve_path() {
         let mut map = ImportMap::default();
-        map.map.insert("foo".to_string(), "bar".to_string());
+        map.import_map.insert("foo".to_string(), "bar".to_string());
         assert_eq!(
             map.resolve_path("foo"),
             Some(ImportModulePath::MappedPackage("bar".intern()))
@@ -142,7 +143,7 @@ mod tests {
     fn test_resolves_package() {
         let mut map = ImportMap::default();
 
-        map.map
+        map.import_map
             .insert("my-package".to_string(), "@1js/my-package".to_string());
 
         assert_eq!(
@@ -155,7 +156,7 @@ mod tests {
     fn test_resolves_package_sub_import_when_value_ends_with_slash() {
         let mut map = ImportMap::default();
 
-        map.map
+        map.import_map
             .insert("my-package".to_string(), "@1js/my-package/".to_string());
 
         assert_eq!(
@@ -170,7 +171,7 @@ mod tests {
     fn test_resolves_package_sub_import_multiple_folders() {
         let mut map = ImportMap::default();
 
-        map.map.insert(
+        map.import_map.insert(
             "my-package/src".to_string(),
             "@1js/my-package/lib/".to_string(),
         );
@@ -187,10 +188,10 @@ mod tests {
     fn test_resolves_the_most_specific_path_to_use() {
         let mut map = ImportMap::default();
 
-        map.map
+        map.import_map
             .insert("my-package".to_string(), "@1js/my-package".to_string());
 
-        map.map.insert(
+        map.import_map.insert(
             "my-package/src".to_string(),
             "@1js/my-package/lib/".to_string(),
         );
@@ -207,7 +208,7 @@ mod tests {
     fn test_correctly_rewrites_the_subpath() {
         let mut map = ImportMap::default();
 
-        map.map.insert(
+        map.import_map.insert(
             "my-resolvers/src".to_string(),
             "@1js/my-resolvers/lib/".to_string(),
         );
@@ -227,7 +228,7 @@ mod tests {
     fn test_correctly_rewrites_the_subpath_with_trailing_slash() {
         let mut map = ImportMap::default();
 
-        map.map.insert(
+        map.import_map.insert(
             "my-resolvers/src/__generated__/".to_string(),
             "@1js/my-resolvers/lib/__generated__/".to_string(),
         );
