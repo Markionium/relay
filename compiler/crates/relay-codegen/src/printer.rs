@@ -19,7 +19,6 @@ use graphql_ir::OperationDefinition;
 use indexmap::IndexMap;
 use intern::string_key::StringKey;
 use intern::Lookup;
-use path_slash::PathExt as _;
 use relay_config::DynamicModuleProvider;
 use relay_config::ImportModulePath;
 use relay_config::ProjectConfig;
